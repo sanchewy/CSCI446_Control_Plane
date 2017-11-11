@@ -289,5 +289,12 @@ class RouteMessage:
             prot_S = 'control'
         else:
             raise('%s: unknown prot_S field: %s' %(self, prot_S))
-        data_S = byte_S[RouteMessage.dst_addr_S_length + RouteMessage.prot_S_length : ]        
-        return self(dst_addr, prot_S, data_S)
+        data_S = byte_S[RouteMessage.dst_addr_S_length + RouteMessage.prot_S_length : ].split()
+        dict = dict()
+        for route in data_S:
+            divide = route.split()
+            dict += {divide[0]: {divide[1]: divide[2]}}
+        return self(dst_addr, prot_S, dict)
+        
+        
+        
