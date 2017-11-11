@@ -5,6 +5,7 @@ Created on Oct 12, 2016
 '''
 import queue
 import threading
+import re
 
 
 ## wrapper class for a queue of packets
@@ -194,8 +195,17 @@ class Router:
     #  @param p Packet containing routing information
     def update_routes(self, p, i):
         #TODO: add logic to update the routing tables and
+        packet = RouteMessage.from_byte_S(p.to_byte_S(), p.to_byte_S())
+        routes = packet[2]
+        print('%s: Received routing update %s from interface %d' % (self, packet, i))
+        for route in routes:        #update the "i" neighbor
+            if route[0] == i:
+                if route[2] < self.rt_tbl_D[route[0]][route[1]]:
+                    self.rt_tbl_D[route[0]][route[1]] = route[2]
+        for route in routes:
+            if route[2] + self.rt_tbl_D[route[0]][i] < self.rt_tbl_D[route[0]][route[1]]:
+                self.rt_tbl_D[route[0]][route[1]] = route[2] + self.rt_tbl_D[route[0]][i]
         # possibly send out routing updates
-        print('%s: Received routing update %s from interface %d' % (self, p, i))
         
     ## send out route update
     # @param i Interface number on which to send out a routing update
@@ -289,12 +299,15 @@ class RouteMessage:
             prot_S = 'control'
         else:
             raise('%s: unknown prot_S field: %s' %(self, prot_S))
-        data_S = byte_S[RouteMessage.dst_addr_S_length + RouteMessage.prot_S_length : ].split()
-        dict = dict()
+        data_S = byte_S[RouteMessage.dst_addr_S_length + RouteMessage.prot_S_length : ]
+        data_S = re.findall(r"[^[]*\[([^]]*)\]", data_S)
+        print("DATA_S: "+str(data_S))
+        new_dict = dict()
         for route in data_S:
-            divide = route.split()
-            dict += {divide[0]: {divide[1]: divide[2]}}
-        return self(dst_addr, prot_S, dict)
+            divide = route.strip('()').split(",")
+            print("DIVIDE SIZE: "+str(len(divide))+" DIVIDE: "+str(divide))
+            new_dict.update({divide[0]: {divide[1]: divide[2]}})
+        return dst_addr, prot_S, new_dict
         
         
         
