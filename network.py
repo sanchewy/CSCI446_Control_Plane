@@ -201,7 +201,7 @@ class Router:
     # @param i Interface number on which to send out a routing update
     def send_routes(self, i):
         # a sample route update packet
-        p = NetworkPacket(0, 'control', 'Sample routing table packet')
+        p = RouteMessage(0, self.rt_tbl_D)
         try:
             #TODO: add logic to send out a route update
             print('%s: sending routing update "%s" from interface %d' % (self, p, i))
@@ -220,19 +220,18 @@ class Router:
         for key, value in self.rt_tbl_D.items():
             columns.insert(len(columns), key)
             for key2 in self.rt_tbl_D[key]:
-                rows.insert(len(rows), key2)
-                
+                rows.insert(len(rows), key2)        
         print("     Cast to")
         dest = "       "
         for i in columns:
             dest += (str(i))+" "
         print(dest)
-        src = "     "
+        src = "From "
         for i in rows:
             src += str(i)
             for column in self.rt_tbl_D:
                 if(str(self.rt_tbl_D[column][i]) == None):
-                    src += " -"
+                    src += " ~"
                 else:
                     src += " "+str(self.rt_tbl_D[column][i])
             print(src)
@@ -248,3 +247,47 @@ class Router:
             if self.stop:
                 print (threading.currentThread().getName() + ': Ending')
                 return 
+
+class RouteMessage:
+    ## packet encoding lengths 
+    dst_addr_S_length = 5
+    prot_S_length = 1
+    
+    ##@param dst_addr: address of the destination host
+    # @param data_S: the routing table from the router
+    # @param prot_S: upper layer protocol for the packet (data, or control)
+    def __init__(self, dst_addr, data_S):
+        self.dst_addr = dst_addr
+        self.data_S = data_S
+
+    def __str__(self):
+        return self.to_byte_S()
+    
+    def to_byte_S(self):
+        byte_S = str(self.dst_addr).zfill(self.dst_addr_S_length)
+        byte_S += '2'
+        
+        columns = list()
+        rows = list()
+        for key, value in self.data_S.items():
+            columns.insert(len(columns), key)
+            for key2 in self.data_S[key]:
+                rows.insert(len(rows), key2)
+        routes = list()
+        for i in columns:
+            for j in rows:
+                routes.insert(len(routes), (i,j,self.data_S[i][j]))
+        byte_S += str(routes)
+        return byte_S
+        
+    def from_byte_S(self, byte_S):
+        dst_addr = int(byte_S[0 : RouteMessage.dst_addr_S_length])
+        prot_S = byte_S[RouteMessage.dst_addr_S_length : RouteMessage.dst_addr_S_length + RouteMessage.prot_S_length]
+        if prot_S == '1':
+            prot_S = 'data'
+        elif prot_S == '2':     #Should only be this one.
+            prot_S = 'control'
+        else:
+            raise('%s: unknown prot_S field: %s' %(self, prot_S))
+        data_S = byte_S[RouteMessage.dst_addr_S_length + RouteMessage.prot_S_length : ]        
+        return self(dst_addr, prot_S, data_S)
