@@ -201,16 +201,17 @@ class Router:
         routes = packet[1]
         print("sender address: "+str(sender_address))
         print("self.rt: "+str(self.rt_tbl_D))
-        neighbor_path = list(self.rt_tbl_D[x] for x in self.rt_tbl_D if sender_address in self.rt_tbl_D.keys() and self.rt_tbl_D[sender_address] != [])
-      #  for x in self.rt_tbl_D:
-      #     if self.rt_tbl_D[x] == sender_address:
-      #          neighbor_path = x
+        neighbor_path = None
         first_route = None
-        if sender_address in routes.keys():
-            for intf in routes[sender_address].keys():
-                first_route = {sender_address:{intf:routes[sender_address][intf]}}
+        if sender_address in self.rt_tbl_D.keys():
+            for intf in self.rt_tbl_D[sender_address].keys():
+                neighbor_path = {sender_address:{intf:self.rt_tbl_D[sender_address][intf]}}
+       # neighbor_path = list(self.rt_tbl_D[x] for x in self.rt_tbl_D if sender_address in self.rt_tbl_D.keys() and self.rt_tbl_D[sender_address] != [])
+        if self.name in routes.keys():
+            for intf in routes[self.name].keys():
+                first_route = {self.name:{intf:routes[self.name][intf]}}
         print("First Route:"+str(first_route)+" neighbor_path: "+str(neighbor_path))
-        if neighbor_path == [] or routes[first_route].itervalues()[0] < self.rt_tbl_D[neighbor_path].itervalues()[0]:   #If this node doesn't have a path to the sender node
+        if not neighbor_path or routes[first_route].itervalues()[0] < self.rt_tbl_D[neighbor_path].itervalues()[0]:   #If this node doesn't have a path to the sender node
             self.rt_tbl_D.update({sender_address:{i:routes[first_route].itervalues()[0]}})
             change_flag = True
         for route in routes:        #update the "ith" path
@@ -249,29 +250,29 @@ class Router:
         #TODO: print the routes as a two dimensional table for easy inspection
         # Currently the function just prints the route table as a dictionary
         columns = list()
-        rows = list()
         for key, value in self.rt_tbl_D.items():
             columns.insert(len(columns), key)
-            for key2 in self.rt_tbl_D[key]:
-                rows.insert(len(rows), key2)    
         print("       Cost to")
         dest = "       "
         for i in columns:
             dest += (str(i))+" "
         print(dest)
         src = "From "
-        for i in range(len(rows)):
-            src += str(rows[i])
-            for j in range(len(columns)):
-                key1 = self.rt_tbl_D.get(columns[j])
-                if key1 is not None:
-                    key2 = key1.get(rows[i])
+        row_keys = set()
+        for i in set(self.rt_tbl_D.keys()):
+            row_keys.update(self.rt_tbl_D[i].keys())
+        for i in row_keys:
+            src += str(i)
+            for j in columns:
+                key1 = self.rt_tbl_D.get(j)
+                if key1 is not None and i in key1.keys():
+                    key2 = key1.get(i)
                     if key2 is not None:
                         src += " "+str(key2)
                     else:
                         src += " ~"
                 else: 
-                    src += " +"
+                    src += " ~"
             print(src)
             src = "     "
         print(self.rt_tbl_D)
