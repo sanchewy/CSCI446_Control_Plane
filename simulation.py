@@ -1,5 +1,5 @@
-import network_2
-import link_2
+import network
+import link
 import threading
 from time import sleep
 import sys
