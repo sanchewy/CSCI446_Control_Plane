@@ -2,7 +2,6 @@ import queue
 import threading
 import re
 import ast
-from operator import itemgetter
 
 ## wrapper class for a queue of packets
 class Interface:
@@ -181,32 +180,13 @@ class Router:
     #  @param p Packet to forward
     #  @param i Incoming interface number for packet p
     def forward_packet(self, p, i):
-        dest = NetworkPacket.to_byte_S(p)[:NetworkPacket.dst_S_length+NetworkPacket.prot_S_length-1].strip("0")
-        print("Router %s forwarding traffic destined to %s" % (self.name, str(dest)))
-        # print("Packet before: "+str(NetworkPacket.to_byte_S(p)))
-        match_dest = list(k for k in self.rt_tbl_D.keys() if k == dest)
-        match_dicts_keys = []
-        for j in match_dest:
-            for key,value in self.rt_tbl_D[j].items():
-                match_dicts_keys.append([j,key,value])
-        best_router = min(match_dicts_keys,key=itemgetter(2))[1]
-        print("Best route to %s through %s" % (str(dest),str(best_router)))
-        interface = None
-        try:
-            if best_router == self.name:
-                interface = next (iter (self.cost_D[dest].keys()))
-            else:
-                interface = next (iter (self.cost_D[best_router].keys()))
-        except KeyError:
-            print("Error: No route was found from router: "+self.name+" to "+dest+" through router "+best_router)
-        print("Forward packet to %s on iterface %s" % (best_router,str(interface)))
-        print(self.name+" MATCHING DICT:"+str(match_dicts_keys))
         try:
             # TODO: Here you will need to implement a lookup into the
             # forwarding table to find the appropriate outgoing interface
             # for now we assume the outgoing interface is 1
-            self.intf_L[interface].put(p.to_byte_S(), 'out', True)
-            print('%s: forwarding packet "%s" from interface %d to %d' % (self, p, i, 1))
+            self.intf_L[1].put(p.to_byte_S(), 'out', True)
+            print('%s: forwarding packet "%s" from interface %d to %d' % \
+                (self, p, i, 1))
         except queue.Full:
             print('%s: packet "%s" lost on interface %d' % (self, p, i))
             pass
@@ -256,25 +236,18 @@ class Router:
         for route in routes.items():
             for key, value in route[1].items():
                 route = [route[0],key,value]
-            existing_route = None
-            sender_path = None
+                existing_route = None
             if route[0] in self.rt_tbl_D.keys():
                 existing_route = self.rt_tbl_D[route[0]]
-            if sender_address in self.rt_tbl_D.keys():
-                sender_path = int(next(iter(self.rt_tbl_D[sender_address].values())))
             # print("EXISTING ROUTE: "+str(existing_route))
             # print("Route"+str(route))
             if existing_route is None:
-                # print(">>>>>CHANGING %s for %s<<<<<<" % (route[0], self.name))
                 self.rt_tbl_D.update({route[0]:{sender_address:self.cost_D[sender_address][i]+int(route[2])}})
                 change_flag = True
-            elif int(sender_path+int(route[2])) < int(next (iter (existing_route.values()))):
-                # print("existing route %s updated to %s" %(str(existing_route), str(next (iter (existing_route.values())))))
-                print(">>>>>CHANGING %s for %s<<<<<<" % (route[0], self.name))
-                self.rt_tbl_D.update({route[0]:{sender_address:int(sender_path+int(route[2]))}})
+            elif int(self.cost_D[sender_address][i]+int(route[2])) < int(next (iter (existing_route.values()))):
+                self.rt_tbl_D.update({route[0]:{sender_address:int(next (iter (existing_route.values())))}})
                 change_flag = True
             else:
-                # print(">>>>>PASS %s for %s<<<<<<" % (route[0],self.name))
                 pass
         if change_flag:
             interface_list = set()
