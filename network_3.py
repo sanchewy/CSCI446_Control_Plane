@@ -256,18 +256,22 @@ class Router:
         for route in routes.items():
             for key, value in route[1].items():
                 route = [route[0],key,value]
-                existing_route = None
+            existing_route = None
+            sender_path = None
             if route[0] in self.rt_tbl_D.keys():
                 existing_route = self.rt_tbl_D[route[0]]
+            if sender_address in self.rt_tbl_D.keys():
+                sender_path = int(next(iter(self.rt_tbl_D[sender_address].values())))
             # print("EXISTING ROUTE: "+str(existing_route))
             # print("Route"+str(route))
             if existing_route is None:
                 # print(">>>>>CHANGING %s for %s<<<<<<" % (route[0], self.name))
                 self.rt_tbl_D.update({route[0]:{sender_address:self.cost_D[sender_address][i]+int(route[2])}})
                 change_flag = True
-            elif int(self.cost_D[sender_address][i]+int(route[2])) < int(next (iter (existing_route.values()))):
-                # print(">>>>>CHANGING %s for %s<<<<<<" % (route[0], self.name))
-                self.rt_tbl_D.update({route[0]:{sender_address:int(next (iter (existing_route.values())))}})
+            elif int(sender_path+int(route[2])) < int(next (iter (existing_route.values()))):
+                # print("existing route %s updated to %s" %(str(existing_route), str(next (iter (existing_route.values())))))
+                print(">>>>>CHANGING %s for %s<<<<<<" % (route[0], self.name))
+                self.rt_tbl_D.update({route[0]:{sender_address:int(sender_path+int(route[2]))}})
                 change_flag = True
             else:
                 # print(">>>>>PASS %s for %s<<<<<<" % (route[0],self.name))
