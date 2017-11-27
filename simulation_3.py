@@ -7,7 +7,7 @@ import sys
 ##configuration parameters
 router_queue_size = 0 #0 means unlimited
 simulation_time = 2   #give the network sufficient time to execute transfers
-routing_table_time = 10
+routing_table_time = 12
 
 if __name__ == '__main__':
     object_L = [] #keeps track of objects, so we can kill their threads at the end
